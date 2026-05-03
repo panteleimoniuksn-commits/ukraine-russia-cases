@@ -1,0 +1,241 @@
+
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:var(--font-sans)}
+.wrap{padding:1rem 0}
+.controls{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:1rem;align-items:center}
+.controls select,.controls input{font-size:13px;padding:5px 8px;border:0.5px solid var(--color-border-secondary);border-radius:var(--border-radius-md);background:var(--color-background-primary);color:var(--color-text-primary)}
+.controls input{flex:1;min-width:140px}
+.stats{display:flex;gap:8px;margin-bottom:1rem;flex-wrap:wrap}
+.stat{background:var(--color-background-secondary);border-radius:var(--border-radius-md);padding:8px 14px;font-size:12px;color:var(--color-text-secondary)}
+.stat b{display:block;font-size:18px;font-weight:500;color:var(--color-text-primary)}
+.tbl-wrap{overflow-x:auto;border:0.5px solid var(--color-border-tertiary);border-radius:var(--border-radius-lg)}
+table{width:100%;border-collapse:collapse;font-size:12px;table-layout:fixed}
+colgroup col:nth-child(1){width:26px}
+colgroup col:nth-child(2){width:200px}
+colgroup col:nth-child(3){width:66px}
+colgroup col:nth-child(4){width:74px}
+colgroup col:nth-child(5){width:72px}
+colgroup col:nth-child(6){width:60px}
+colgroup col:nth-child(7){width:90px}
+colgroup col:nth-child(8){width:100px}
+thead th{background:var(--color-background-secondary);padding:8px 8px;text-align:left;font-weight:500;font-size:11px;color:var(--color-text-secondary);border-bottom:0.5px solid var(--color-border-tertiary);cursor:pointer;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;position:sticky;top:0;z-index:2}
+thead th:hover{color:var(--color-text-primary)}
+tbody tr{border-bottom:0.5px solid var(--color-border-tertiary);transition:background 0.1s}
+tbody tr:last-child{border-bottom:none}
+tbody tr:hover{background:var(--color-background-secondary)}
+td{padding:7px 8px;vertical-align:top;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+td.name-cell{white-space:normal;line-height:1.4}
+.badge{display:inline-block;padding:2px 7px;border-radius:20px;font-size:10px;font-weight:500;white-space:nowrap}
+.b-icj{background:#E6F1FB;color:#0C447C}
+.b-ecthr{background:#EEEDFE;color:#3C3489}
+.b-icc{background:#FCEBEB;color:#791F1F}
+.b-pca{background:#EAF3DE;color:#27500A}
+.b-scc,.b-iccarb{background:#FAEEDA;color:#633806}
+.b-itlos,.b-icao{background:#E1F5EE;color:#085041}
+.b-dutch,.b-fi,.b-lt,.b-de,.b-uk{background:#F1EFE8;color:#444441}
+.b-eu{background:#FBEAF0;color:#72243E}
+.s-pending{background:#FAEEDA;color:#633806}
+.s-active{background:#EAF3DE;color:#27500A}
+.s-warrant{background:#FCEBEB;color:#791F1F}
+.s-final{background:#E6F1FB;color:#0C447C}
+.s-enforcing{background:#E1F5EE;color:#085041}
+.s-other{background:#F1EFE8;color:#5F5E5A}
+.responsible-input{width:100%;border:0.5px solid var(--color-border-tertiary);border-radius:4px;padding:3px 5px;font-size:11px;background:var(--color-background-primary);color:var(--color-text-primary);outline:none}
+.responsible-input:focus{border-color:var(--color-border-primary)}
+.no-rows{text-align:center;padding:2rem;color:var(--color-text-tertiary);font-size:13px}
+.sort-asc::after{content:" ↑"}
+.sort-desc::after{content:" ↓"}
+.export-btn{font-size:12px;padding:5px 12px;margin-left:auto}
+</style>
+
+<div class="wrap">
+<h2 class="sr-only">Трекер міжнародних справ Україна–Росія — 41 справа</h2>
+<div class="stats" id="stats"></div>
+<div class="controls">
+  <input type="text" id="search" placeholder="Пошук за назвою…">
+  <select id="f-forum"><option value="">Всі форуми</option></select>
+  <select id="f-type"><option value="">Всі типи</option></select>
+  <select id="f-status"><option value="">Всі статуси</option></select>
+  <button class="export-btn" onclick="exportCSV()">Експорт CSV ↗</button>
+</div>
+<div class="tbl-wrap">
+<table>
+<colgroup><col><col><col><col><col><col><col><col></colgroup>
+<thead>
+<tr>
+  <th onclick="sortBy('id')" title="Сортувати">#</th>
+  <th onclick="sortBy('name')">Справа</th>
+  <th onclick="sortBy('forum')">Форум</th>
+  <th onclick="sortBy('type')">Тип</th>
+  <th onclick="sortBy('status')">Статус</th>
+  <th onclick="sortBy('year')">Рік</th>
+  <th onclick="sortBy('amount')">Сума (USD)</th>
+  <th>Відповідальний</th>
+</tr>
+</thead>
+<tbody id="tbody"></tbody>
+</table>
+</div>
+</div>
+
+<script>
+const CASES = [
+  {id:1,name:"Ukraine v Russia (CERD + Terrorism Financing)",forum:"ICJ",type:"Міжнародне публічне",status:"Рішення винесено",year:2017,amount:null,note:"ICJ GL 166 · Крим, Донбас",url:"https://www.icj-cij.org/case/166"},
+  {id:2,name:"Allegations of Genocide (Ukraine v Russia, 32 держави)",forum:"ICJ",type:"Міжнародне публічне",status:"Розгляд по суті",year:2022,amount:null,note:"ICJ GL 182",url:"https://www.icj-cij.org/case/182"},
+  {id:3,name:"Russia v Australia & Netherlands (ICAO appeal, MH17)",forum:"ICJ",type:"Міжнародне публічне",status:"Попередній етап",year:2025,amount:null,note:"ICJ GL 201"},
+  {id:4,name:"Ukraine v Russia (re Crimea) [GC]",forum:"ECtHR",type:"Права людини",status:"Рішення винесено",year:2014,amount:null,note:"Apps 20958/14, 38334/18",url:"https://www.echr.coe.int/w/ukraine-v-russia-re-crimea-nos-20958/14-and-38334/18-"},
+  {id:5,name:"Ukraine and Netherlands v Russia [GC] — MH17 + схід",forum:"ECtHR",type:"Права людини",status:"Очікує сатисфакції",year:2014,amount:null,note:"Apps 8019/16 et al.",url:"https://hudoc.echr.coe.int/fre?i=002-14493"},
+  {id:6,name:"Ukraine v Russia (VIII) — Керченська протока",forum:"ECtHR",type:"Права людини",status:"Розгляд",year:2018,amount:null,note:"App 55855/18",url:"https://www.echr.coe.int/w/ukraine-v.-russia-viii-no.-55855/18-"},
+  {id:7,name:"Ukraine v Russia (IX) — транснаціональні репресії",forum:"ECtHR",type:"Права людини",status:"Розгляд",year:2021,amount:null,note:"App 10691/21"},
+  {id:8,name:"Russia v Ukraine — зустрічна скарга",forum:"ECtHR",type:"Права людини",status:"Закрито 2023",year:2021,amount:null,note:"App 36958/21",url:"https://www.echr.coe.int/w/russia-v.-ukraine-no.-36958/21-"},
+  {id:9,name:"Situation in Ukraine",forum:"ICC",type:"Кримінальне",status:"Розслідування активне",year:2022,amount:null,note:"6 ордерів",url:"https://www.icc-cpi.int/situations/ukraine"},
+  {id:10,name:"Prosecutor v Putin",forum:"ICC",type:"Кримінальне",status:"Ордер видано",year:2023,amount:null,note:"Депортація дітей",url:"https://www.icc-cpi.int/news/situation-ukraine-icc-judges-issue-arrest-warrants-against-vladimir-vladimirovich-putin-and"},
+  {id:11,name:"Prosecutor v Lvova-Belova",forum:"ICC",type:"Кримінальне",status:"Ордер видано",year:2023,amount:null,note:"Депортація дітей",url:"https://www.icc-cpi.int/defendant/maria-alekseyevna-lvova-belova"},
+  {id:12,name:"Prosecutor v Kobylash",forum:"ICC",type:"Кримінальне",status:"Ордер видано",year:2024,amount:null,note:"Удари по енергетиці"},
+  {id:13,name:"Prosecutor v Sokolov",forum:"ICC",type:"Кримінальне",status:"Ордер видано",year:2024,amount:null,note:"Удари по енергетиці"},
+  {id:14,name:"Prosecutor v Shoigu",forum:"ICC",type:"Кримінальне",status:"Ордер видано",year:2024,amount:null,note:"Удари по енергетиці"},
+  {id:15,name:"Prosecutor v Gerasimov",forum:"ICC",type:"Кримінальне",status:"Ордер видано",year:2024,amount:null,note:"Удари по енергетиці"},
+  {id:16,name:"Detention of Ukrainian Naval Vessels (ITLOS/PCA)",forum:"ITLOS",type:"Морське право",status:"Розгляд по суті",year:2019,amount:null,note:"ITLOS 26",url:"https://www.itlos.org/en/main/cases/list-of-cases/case-concerning-the-detention-of-three-ukrainian-naval-vessels-ukraine-v-russian-federation-provisional-measures/"},
+  {id:17,name:"Australia & Netherlands v Russia (ICAO, MH17)",forum:"ICAO",type:"Міжнародне публічне",status:"Рішення, оскаржується",year:2022,amount:null,note:"Art. 84",url:"https://www.icao.int/news/icao-council-vote-flight-mh17-case"},
+  {id:18,name:"Naftogaz v Gazprom — Supply (SCC)",forum:"SCC",type:"Комерційний арбітраж",status:"Врегульовано 2019",year:2014,amount:-2020000000,note:"SCC V 2014-078"},
+  {id:19,name:"Naftogaz v Gazprom — Transit (SCC)",forum:"SCC",type:"Комерційний арбітраж",status:"Врегульовано 2019",year:2014,amount:4630000000,note:"SCC V 2014-129"},
+  {id:20,name:"Naftogaz v Gazprom (III) — ICC Transit (2022)",forum:"ICC арб.",type:"Комерційний арбітраж",status:"Остаточне рішення",year:2022,amount:1370000000,note:"ICC 27245/GL",url:"https://www.brattle.com/insights-events/news/brattle-client-naftogaz-awarded-1-37-billion-in-icc-arbitration-in-transit-dispute-with-gazprom/"},
+  {id:21,name:"Naftogaz et al. v Russia (Крим, нафта і газ)",forum:"PCA",type:"BIT арбітраж",status:"Виконання",year:2016,amount:5000000000,note:"PCA 2017-16",url:"https://www.italaw.com/cases/4381"},
+  {id:22,name:"Aeroport Belbek + Kolomoisky v Russia",forum:"PCA",type:"BIT арбітраж",status:"Відповідальність встановлена",year:2015,amount:null,note:"PCA 2015-07",url:"https://pca-cpa.org/en/cases/123/"},
+  {id:23,name:"PrivatBank + Finilon v Russia",forum:"PCA",type:"BIT арбітраж",status:"Відповідальність встановлена",year:2015,amount:1000000000,note:"PCA 2015-21 · заявлена"},
+  {id:24,name:"Oschadbank v Russia",forum:"PCA",type:"BIT арбітраж",status:"Виконання",year:2016,amount:1100000000,note:"PCA 2016-14"},
+  {id:25,name:"Ukrnafta v Russia",forum:"PCA",type:"BIT арбітраж",status:"Остаточне рішення",year:2015,amount:44455012,note:"PCA 2015-34"},
+  {id:26,name:"Stabil et al. v Russia",forum:"PCA",type:"BIT арбітраж",status:"Остаточне рішення",year:2015,amount:34600000,note:"PCA 2015-35"},
+  {id:27,name:"Everest Estate et al. v Russia",forum:"PCA",type:"BIT арбітраж",status:"Повернуто на новий розгляд",year:2015,amount:159000000,note:"PCA 2015-36"},
+  {id:28,name:"Lugzor et al. v Russia",forum:"PCA",type:"BIT арбітраж",status:"Рішення винесено",year:2015,amount:null,note:"PCA 2015-29",url:"https://pca-cpa.org/en/cases/124/"},
+  {id:29,name:"DTEK Krymenergo v Russia",forum:"PCA",type:"BIT арбітраж",status:"Виконання зупинено",year:2018,amount:207800000,note:"PCA 2018-41"},
+  {id:30,name:"NEK Ukrenergo v Russia",forum:"PCA",type:"BIT арбітраж",status:"Розгляд по суті",year:2020,amount:580000000,note:"PCA Paris · заявлена"},
+  {id:31,name:"Energoatom v Russia (II) — Запоріжжя",forum:"PCA",type:"BIT арбітраж",status:"До арбітражу",year:2023,amount:3000000000,note:"Заявлена"},
+  {id:32,name:"Ukrhydroenergo v Russia — Каховка ГЕС",forum:"PCA",type:"BIT арбітраж",status:"Призупинено",year:2024,amount:2500000000,note:"Заявлена"},
+  {id:33,name:"PPS v Girkin, Dubinskiy, Pulatov, Kharchenko (MH17)",forum:"Нідерланди",type:"Нац. кримінальне",status:"Остаточний вирок",year:2020,amount:null,note:"NL · ECLI:NL:RBDHA"},
+  {id:34,name:"JIT MH17 follow-on",forum:"Нідерланди",type:"Нац. кримінальне",status:"Призупинено",year:2014,amount:null,note:"JIT MH17"},
+  {id:35,name:"Russia v Naftogaz et al. (Hoge Raad, скасування)",forum:"Нідерланди",type:"Нац. цивільне",status:"Арбітраж залишено",year:2023,amount:null,note:"HR:2024:1810"},
+  {id:36,name:"Russia v Belbek/Kolomoisky (Hoge Raad)",forum:"Нідерланди",type:"Нац. цивільне",status:"Арбітраж залишено",year:2022,amount:null,note:"HR 2024"},
+  {id:37,name:"Russia v PrivatBank/Finilon (Hoge Raad)",forum:"Нідерланди",type:"Нац. цивільне",status:"Арбітраж залишено",year:2022,amount:null,note:"HR 2024"},
+  {id:38,name:"Russia v Everest Estate (Hoge Raad)",forum:"Нідерланди",type:"Нац. цивільне",status:"Повернуто до апеляції",year:2022,amount:null,note:"HR 2024"},
+  {id:39,name:"Finland v Yan Petrovsky (UJ, Rusich)",forum:"Фінляндія",type:"Нац. кримінальне",status:"Вирок, апеляція",year:2024,amount:null,note:"Helsinki · перше UJ засудження"},
+  {id:40,name:"Lithuania v Gadzhimagomedov (UJ, катування)",forum:"Литва",type:"Нац. кримінальне",status:"До суду",year:2025,amount:null,note:"Vilnius · перша екстрадиція"},
+  {id:41,name:"EU/Belgium — заморожені активи ЦБ РФ",forum:"ЄС/Бельгія",type:"Виконавче рішення",status:"Заморожено безстроково",year:2022,amount:210000000000,note:"Euroclear €210 млрд"}
+];
+
+const stored = JSON.parse(localStorage.getItem('caseResponsible')||'{}');
+CASES.forEach(c=>{c.responsible=stored[c.id]||''});
+
+const forums=[...new Set(CASES.map(c=>c.forum))].sort();
+const types=[...new Set(CASES.map(c=>c.type))].sort();
+const statuses=[...new Set(CASES.map(c=>c.status))].sort();
+
+const fForum=document.getElementById('f-forum');
+const fType=document.getElementById('f-type');
+const fStatus=document.getElementById('f-status');
+forums.forEach(f=>{const o=document.createElement('option');o.value=f;o.textContent=f;fForum.appendChild(o)});
+types.forEach(t=>{const o=document.createElement('option');o.value=t;o.textContent=t;fType.appendChild(o)});
+statuses.forEach(s=>{const o=document.createElement('option');o.value=s;o.textContent=s;fStatus.appendChild(o)});
+
+let sortCol='id',sortDir=1;
+
+function badgeForum(f){
+  const map={'ICJ':'b-icj','ECtHR':'b-ecthr','ICC':'b-icc','PCA':'b-pca','SCC':'b-scc','ITLOS':'b-itlos','ICAO':'b-icao','ICC арб.':'b-iccarb','Нідерланди':'b-dutch','Фінляндія':'b-fi','Литва':'b-lt','ЄС/Бельгія':'b-eu'};
+  return `<span class="badge ${map[f]||'b-dutch'}">${f}</span>`;
+}
+function badgeStatus(s){
+  if(/Ордер/.test(s))return`<span class="badge s-warrant">${s}</span>`;
+  if(/активне|активна|Розслідування/.test(s))return`<span class="badge s-active">${s}</span>`;
+  if(/Виконання|Виконан/.test(s))return`<span class="badge s-enforcing">${s}</span>`;
+  if(/Розгляд|До суду|До арбітражу|Попередній|суті|Очікує/.test(s))return`<span class="badge s-pending">${s}</span>`;
+  if(/Остаточне|залишено|вирок|Рішення|Врегульовано/.test(s))return`<span class="badge s-final">${s}</span>`;
+  return`<span class="badge s-other">${s}</span>`;
+}
+function fmtAmt(a){
+  if(a===null)return'—';
+  if(Math.abs(a)>=1e9)return(a/1e9).toFixed(2)+'B';
+  if(Math.abs(a)>=1e6)return(a/1e6).toFixed(1)+'M';
+  return a.toLocaleString();
+}
+
+function getFiltered(){
+  const q=document.getElementById('search').value.toLowerCase();
+  const ff=fForum.value,ft=fType.value,fs=fStatus.value;
+  return CASES.filter(c=>{
+    if(q&&!c.name.toLowerCase().includes(q)&&!c.note.toLowerCase().includes(q))return false;
+    if(ff&&c.forum!==ff)return false;
+    if(ft&&c.type!==ft)return false;
+    if(fs&&c.status!==fs)return false;
+    return true;
+  }).sort((a,b)=>{
+    let av=a[sortCol],bv=b[sortCol];
+    if(sortCol==='amount'){av=av||0;bv=bv||0;}
+    if(typeof av==='string')av=av.toLowerCase();
+    if(typeof bv==='string')bv=bv.toLowerCase();
+    return av<bv?-sortDir:av>bv?sortDir:0;
+  });
+}
+
+function render(){
+  const rows=getFiltered();
+  const tbody=document.getElementById('tbody');
+  if(!rows.length){tbody.innerHTML=`<tr><td colspan="8" class="no-rows">Справ не знайдено</td></tr>`;updateStats(rows);return;}
+  tbody.innerHTML=rows.map((c,i)=>`
+<tr>
+  <td style="color:var(--color-text-tertiary);font-size:11px">${c.id}</td>
+  <td class="name-cell">
+    ${c.url?`<a href="${c.url}" style="color:var(--color-text-info);text-decoration:none" title="${c.note}">${c.name}</a>`:`<span title="${c.note}">${c.name}</span>`}
+    <div style="font-size:10px;color:var(--color-text-tertiary);margin-top:2px">${c.note}</div>
+  </td>
+  <td>${badgeForum(c.forum)}</td>
+  <td style="font-size:11px;color:var(--color-text-secondary)">${c.type}</td>
+  <td>${badgeStatus(c.status)}</td>
+  <td style="color:var(--color-text-secondary)">${c.year}</td>
+  <td style="font-size:11px;color:var(--color-text-secondary)">${fmtAmt(c.amount)}</td>
+  <td><input class="responsible-input" placeholder="Ввести…" value="${c.responsible||''}" data-id="${c.id}" onchange="saveResp(this)"></td>
+</tr>`).join('');
+  updateStats(rows);
+}
+
+function updateStats(rows){
+  const total=rows.length;
+  const withResp=rows.filter(r=>r.responsible).length;
+  const totalAmt=rows.reduce((s,c)=>s+(c.amount&&c.amount>0?c.amount:0),0);
+  document.getElementById('stats').innerHTML=`
+    <div class="stat"><b>${total}</b>справ</div>
+    <div class="stat"><b>${withResp}</b>з відповідальним</div>
+    <div class="stat"><b>${total-withResp}</b>без відповідального</div>
+    <div class="stat"><b>${(totalAmt/1e9).toFixed(1)}B USD</b>сума вимог</div>
+  `;
+}
+
+function saveResp(el){
+  const id=+el.dataset.id;
+  CASES.find(c=>c.id===id).responsible=el.value;
+  const all=JSON.parse(localStorage.getItem('caseResponsible')||'{}');
+  all[id]=el.value;
+  try{localStorage.setItem('caseResponsible',JSON.stringify(all));}catch(e){}
+  updateStats(getFiltered());
+}
+
+function sortBy(col){
+  const ths=document.querySelectorAll('thead th');
+  ths.forEach(th=>{th.className='';});
+  if(sortCol===col)sortDir*=-1; else{sortCol=col;sortDir=1;}
+  const idx=['id','name','forum','type','status','year','amount'].indexOf(col);
+  if(idx>=0){ths[idx].className=sortDir===1?'sort-asc':'sort-desc';}
+  render();
+}
+
+function exportCSV(){
+  const rows=getFiltered();
+  const hdr=['#','Назва','Форум','Тип','Статус','Рік','Сума USD','Відповідальний','Нотатка'];
+  const lines=[hdr.join(','),...rows.map(c=>[c.id,`"${c.name}"`,c.forum,c.type,c.status,c.year,c.amount||'',`"${c.responsible||''}"`,`"${c.note}"`].join(','))];
+  const blob=new Blob([lines.join('\n')],{type:'text/csv'});
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='ukraine-russia-cases.csv';a.click();
+}
+
+['search','f-forum','f-type','f-status'].forEach(id=>document.getElementById(id).addEventListener('input',render));
+render();
+</script>
